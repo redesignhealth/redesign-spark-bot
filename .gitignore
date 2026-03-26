@@ -1,0 +1,10 @@
+.env
+.DS_Store
+venv/
+__pycache__/
+*.pyc
+credentials.json
+spark_feedback.db
+sparkbot.log
+generate_avatar.py
+test_akash.py
