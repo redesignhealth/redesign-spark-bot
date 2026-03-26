@@ -92,9 +92,6 @@ def post_weekly_reminder():
 if __name__ == "__main__":
     init_db()
 
-    from scheduler import start_scheduler
-    start_scheduler(post_weekly_reminder)
-
     print("Bot running in Socket Mode. Feedback requests will NOT be sent until triggered.")
     handler = SocketModeHandler(app, os.environ["SLACK_APP_TOKEN"])
     handler.start()
