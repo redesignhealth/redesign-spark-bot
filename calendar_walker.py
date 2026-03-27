@@ -3,13 +3,36 @@ Feature 1 & 2: Poll mentor Google Calendars every 10 minutes.
 When a call with a Spark is detected as just ended, post a nudge in the
 Spark's thread on #proj-redesign-spark tagging the mentor(s) on the call.
 
-REQUIRES: Google service account with domain-wide delegation.
-IT setup needed:
-  1. Go to Google Workspace Admin Console → Security → API Controls → Domain-wide Delegation
-  2. Add the service account client ID with scope:
-     https://www.googleapis.com/auth/calendar.readonly
-  3. Set GOOGLE_IMPERSONATE_USER env var to any RH admin email (e.g. jainam.chudgar@redesignhealth.com)
-     — the service account will impersonate this user to access other calendars.
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+NOTE: WHY THIS NEEDS ITS OWN GOOGLE SETUP
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+During development, Claude used a Google MCP tool connected to Jainam's
+personal Google account — this allowed Claude to read Jainam's Gmail to
+find Spark emails, etc. That MCP is a developer tool only, NOT how
+calendar_walker.py works.
+
+calendar_walker.py needs to read OTHER people's calendars (mentors across
+the org). Jainam's personal Google credentials cannot do this. It requires
+a Google service account with domain-wide delegation — a server credential
+issued by IT that is allowed to impersonate any RH Google Workspace user
+and read their calendar. This has never run yet and is blocked on IT setup.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+IT SETUP REQUIRED (one-time, via #helpdesk)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  1. Create a Google service account (or use an existing one) and download
+     its JSON key — paste the entire JSON as the env var GOOGLE_CREDENTIALS_JSON
+     on Dokploy.
+
+  2. In Google Workspace Admin Console → Security → API Controls →
+     Domain-wide Delegation → Add the service account's client ID with scope:
+       https://www.googleapis.com/auth/calendar.readonly
+
+  3. Set env var GOOGLE_IMPERSONATE_USER to any RH admin email
+     (e.g. jainam.chudgar@redesignhealth.com) — the service account will
+     impersonate this user as the entry point to access mentor calendars.
+
+Without steps 1-3, check_calendars() will skip silently on every poll.
 """
 import json
 import os
