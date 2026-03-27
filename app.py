@@ -8,6 +8,9 @@ from slack_bolt.adapter.socket_mode import SocketModeHandler
 
 from config import EVALUATORS, PROGRAM_WEEKS, RUBRIC
 from db import has_submitted, init_db
+from ext_summary import run_ext_summaries
+from weekly_update import post_weekly_update
+from scheduler import start_scheduler
 
 load_dotenv()
 
@@ -39,9 +42,8 @@ def find_evaluator_by_slack_id(user_id: str):
 
 def post_weekly_reminder():
     """
-    Every Thursday 4 PM ET — for each Spark thread where feedback is still
-    missing, post a targeted reminder in that thread tagging only the mentors
-    who haven't submitted yet. Threads where everyone has submitted are skipped.
+    Every Thursday 4 PM ET — post a targeted reminder in each Spark thread
+    where feedback is still missing, tagging only the mentors who haven't submitted.
     """
     threads_file = os.path.join(os.path.dirname(__file__), "spark_threads.json")
     if not os.path.exists(threads_file):
@@ -54,13 +56,12 @@ def post_weekly_reminder():
     week = get_current_week()
 
     for spark_name, info in threads.items():
-        # Find evaluators assigned to this spark who haven't submitted yet
         missing = []
         for ev_key, ev in EVALUATORS.items():
             if spark_name not in ev["assigned_sparks"]:
                 continue
             if not RUBRIC[week][ev["section"]]:
-                continue  # No questions this week for their section
+                continue
             if ev["slack_user_id"].startswith("PLACEHOLDER"):
                 continue
             if not has_submitted(week, spark_name, ev_key):
@@ -92,6 +93,13 @@ def post_weekly_reminder():
 if __name__ == "__main__":
     init_db()
 
-    print("Bot running in Socket Mode. Feedback requests will NOT be sent until triggered.")
+    start_scheduler(
+        post_reminder_fn=post_weekly_reminder,
+        post_ext_summaries_fn=run_ext_summaries,
+        post_weekly_update_fn=post_weekly_update,
+        get_week_fn=get_current_week,
+    )
+
+    print("SparkBot running in Socket Mode.")
     handler = SocketModeHandler(app, os.environ["SLACK_APP_TOKEN"])
     handler.start()
