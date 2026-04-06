@@ -35,9 +35,12 @@ IT SETUP REQUIRED (one-time, via #helpdesk)
 Without steps 1-3, check_calendars() will skip silently on every poll.
 """
 import json
+import logging
 import os
 import time
 from datetime import datetime, timedelta, timezone
+
+logger = logging.getLogger(__name__)
 
 from google.oauth2.service_account import Credentials
 from googleapiclient.discovery import build
@@ -125,7 +128,7 @@ def _get_recently_ended_events(service, mentor_email):
         ).execute()
         return result.get("items", [])
     except Exception as e:
-        print(f"[calendar] Error fetching events for {mentor_email}: {e}")
+        logger.error("Error fetching events for %s: %s", mentor_email, e)
         return []
 
 
@@ -138,7 +141,7 @@ def _post_nudge(spark_name, spark_info, mentor_user_ids, event_summary):
         f"any flags on concept or direction. Even 3 bullets helps. :sparkles:"
     )
     post_message(spark_info["channel"], text, thread_ts=spark_info["ts"])
-    print(f"[calendar] Posted nudge for {spark_name} (mentors: {mentor_user_ids})")
+    logger.info("Posted nudge for %s (mentors: %s)", spark_name, mentor_user_ids)
 
 
 def check_calendars():
@@ -148,7 +151,7 @@ def check_calendars():
     """
     impersonate_user = os.getenv("GOOGLE_IMPERSONATE_USER")
     if not impersonate_user:
-        print("[calendar] GOOGLE_IMPERSONATE_USER not set — skipping calendar check")
+        logger.warning("GOOGLE_IMPERSONATE_USER not set — skipping calendar check")
         return
 
     sparks = _load_sparks()
@@ -168,7 +171,7 @@ def check_calendars():
             service = _get_calendar_service(mentor_email)
             events = _get_recently_ended_events(service, mentor_email)
         except Exception as e:
-            print(f"[calendar] Could not access calendar for {mentor_email}: {e}")
+            logger.error("Could not access calendar for %s: %s", mentor_email, e)
             continue
 
         for event in events:

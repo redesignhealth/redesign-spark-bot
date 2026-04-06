@@ -7,6 +7,10 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
+# Persistent volume for SQLite database
+RUN mkdir -p /data
+VOLUME ["/data"]
+
 EXPOSE 8080
 
 CMD ["python", "app.py"]

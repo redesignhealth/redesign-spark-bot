@@ -1,5 +1,7 @@
 import json
+import logging
 import os
+import sys
 import threading
 from datetime import date
 from http.server import BaseHTTPRequestHandler, HTTPServer
@@ -16,6 +18,14 @@ from calendar_walker import check_calendars
 from scheduler import start_scheduler
 
 load_dotenv()
+
+logging.basicConfig(
+    level=os.getenv("LOG_LEVEL", "INFO").upper(),
+    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+    stream=sys.stdout,
+)
+logger = logging.getLogger(__name__)
 
 app = App(token=os.environ["SLACK_BOT_TOKEN"])
 
@@ -50,7 +60,7 @@ def post_weekly_reminder():
     """
     threads_file = os.path.join(os.path.dirname(__file__), "spark_threads.json")
     if not os.path.exists(threads_file):
-        print("[reminder] spark_threads.json not found — run post_spark_threads.py first")
+        logger.warning("spark_threads.json not found — run post_spark_threads.py first")
         return
 
     with open(threads_file) as f:
@@ -71,7 +81,7 @@ def post_weekly_reminder():
                 missing.append(ev["slack_user_id"])
 
         if not missing:
-            print(f"[reminder] {spark_name} — all feedback submitted, skipping")
+            logger.info("reminder: %s — all feedback submitted, skipping", spark_name)
             continue
 
         tags = " ".join(f"<@{uid}>" for uid in missing)
@@ -86,9 +96,9 @@ def post_weekly_reminder():
                 thread_ts=info["ts"],
                 text=text,
             )
-            print(f"[reminder] Posted reminder in {spark_name} thread ({len(missing)} missing)")
+            logger.info("reminder: posted in %s thread (%d missing)", spark_name, len(missing))
         except Exception as e:
-            print(f"[reminder] Error posting to {spark_name} thread: {e}")
+            logger.error("reminder: error posting to %s thread: %s", spark_name, e)
 
 
 # ── Health server ─────────────────────────────────────────────────────────────
@@ -112,7 +122,7 @@ def _start_health_server():
     server = HTTPServer(("0.0.0.0", port), _HealthHandler)
     thread = threading.Thread(target=server.serve_forever, daemon=True)
     thread.start()
-    print(f"Health server listening on port {port}")
+    logger.info("Health server listening on port %d", port)
 
 
 # ── Entrypoint ────────────────────────────────────────────────────────────────
@@ -129,6 +139,6 @@ if __name__ == "__main__":
         get_week_fn=get_current_week,
     )
 
-    print("SparkBot running in Socket Mode.")
+    logger.info("SparkBot running in Socket Mode.")
     handler = SocketModeHandler(app, os.environ["SLACK_APP_TOKEN"])
     handler.start()

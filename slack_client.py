@@ -1,8 +1,11 @@
 """Thin wrapper around Slack API calls using the bot token."""
-import os
 import json
-import urllib.request
+import logging
+import os
 import urllib.parse
+import urllib.request
+
+logger = logging.getLogger(__name__)
 
 SLACK_BOT_TOKEN = os.environ["SLACK_BOT_TOKEN"]
 
@@ -35,7 +38,7 @@ def get_thread_replies(channel, thread_ts):
     """Return all messages in a thread (excluding parent)."""
     result = _get("conversations.replies", channel=channel, ts=thread_ts, limit=200)
     if not result.get("ok"):
-        print(f"[slack] Error reading thread {thread_ts}: {result.get('error')}")
+        logger.error("Error reading thread %s: %s", thread_ts, result.get("error"))
         return []
     return result.get("messages", [])[1:]  # skip parent
 
@@ -47,7 +50,7 @@ def get_channel_history(channel, oldest=None, limit=100):
         params["oldest"] = oldest
     result = _get("conversations.history", **params)
     if not result.get("ok"):
-        print(f"[slack] Error reading channel {channel}: {result.get('error')}")
+        logger.error("Error reading channel %s: %s", channel, result.get("error"))
         return []
     return result.get("messages", [])
 
@@ -59,7 +62,7 @@ def post_message(channel, text, thread_ts=None):
         params["thread_ts"] = thread_ts
     result = _call("chat.postMessage", **params)
     if not result.get("ok"):
-        print(f"[slack] Error posting: {result.get('error')}")
+        logger.error("Error posting message to %s: %s", channel, result.get("error"))
     return result
 
 

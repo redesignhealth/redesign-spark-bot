@@ -5,10 +5,12 @@ Auth: place a service-account credentials.json in the project root, OR set
 GOOGLE_CREDENTIALS_JSON env var to the JSON string of the credentials.
 Then share the spreadsheet with the service-account email (Editor access).
 """
-import json
+import logging
 import os
 
 import gspread
+
+logger = logging.getLogger(__name__)
 from google.oauth2.service_account import Credentials
 
 from config import RUBRIC, SECTION_LABELS
@@ -21,9 +23,17 @@ SHEET_ID = os.getenv("GOOGLE_SHEET_ID", "10wE47RRFzQskufiCOLrUxKVcQtWhORkiN9XpRc
 
 
 def _get_client():
-    creds_json = os.getenv("GOOGLE_CREDENTIALS_JSON")
-    if creds_json:
-        info = json.loads(creds_json)
+    client_email = os.getenv("GOOGLE_CLIENT_EMAIL")
+    private_key = os.getenv("GOOGLE_PRIVATE_KEY")
+    if client_email and private_key:
+        info = {
+            "type": "service_account",
+            "client_email": client_email,
+            "private_key": private_key.replace("\\n", "\n"),
+            "private_key_id": os.getenv("GOOGLE_PRIVATE_KEY_ID", ""),
+            "project_id": os.getenv("GOOGLE_PROJECT_ID", ""),
+            "token_uri": "https://oauth2.googleapis.com/token",
+        }
         creds = Credentials.from_service_account_info(info, scopes=SCOPES)
     else:
         creds = Credentials.from_service_account_file("credentials.json", scopes=SCOPES)
@@ -78,6 +88,6 @@ def write_feedback_to_sheet(week, spark_name, evaluator_name, section,
             lines.append(f"\nOverall Score: {overall_score}/10")
 
         sheet.update_cell(row_idx, col_idx, "\n".join(lines))
-        print(f"Sheet updated: Week {week} | {spark_name} | {evaluator_name}")
+        logger.info("Sheet updated: Week %d | %s | %s", week, spark_name, evaluator_name)
     except Exception as e:
-        print(f"[sheets] Error writing feedback: {e}")
+        logger.error("Error writing feedback to sheet: %s", e)

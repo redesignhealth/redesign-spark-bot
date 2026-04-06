@@ -1,9 +1,12 @@
 import json
+import logging
 import os
 from datetime import datetime
 
+logger = logging.getLogger(__name__)
+
 DATABASE_URL = os.getenv("DATABASE_URL")
-DB_PATH = os.getenv("DB_PATH", "spark_feedback.db")
+DB_PATH = os.getenv("DB_PATH", "/data/spark_feedback.db")
 
 # Use Postgres if DATABASE_URL is set, otherwise SQLite
 if DATABASE_URL:
@@ -92,7 +95,7 @@ def init_db():
                 ON feedback(week, spark_name, evaluator_key)
             """)
         conn.commit()
-    print("Database initialised.")
+    logger.info("Database initialised.")
 
 
 def save_feedback(week, spark_name, evaluator_key, evaluator_name, section,

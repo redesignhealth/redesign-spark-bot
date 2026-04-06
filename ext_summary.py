@@ -4,9 +4,12 @@ and post the summary to the corresponding Spark thread in #proj-redesign-spark.
 Runs every Monday and Friday.
 """
 import json
+import logging
 import os
 import time
 from datetime import datetime, timedelta
+
+logger = logging.getLogger(__name__)
 
 import anthropic
 
@@ -96,14 +99,14 @@ def post_ext_summary_to_thread(spark_name, info):
     """Read ext channel, summarize, post to Spark's thread."""
     ext_channel = info.get("ext_channel")
     if not ext_channel:
-        print(f"[ext_summary] No ext channel for {spark_name}, skipping")
+        logger.warning("No ext channel configured for %s, skipping", spark_name)
         return
 
-    print(f"[ext_summary] Processing {spark_name}...")
+    logger.info("Processing ext summary for %s...", spark_name)
     messages = _get_ext_messages(ext_channel, days_back=7)
 
     if not messages:
-        print(f"[ext_summary] No recent messages in ext channel for {spark_name}, skipping")
+        logger.info("No recent messages in ext channel for %s, skipping", spark_name)
         return
 
     transcript = _format_messages_for_claude(messages, spark_name)
@@ -125,7 +128,7 @@ def post_ext_summary_to_thread(spark_name, info):
         text += f"\n\n:bell: {tags} — no notes from this week yet in this thread. Drop a few bullets when you get a chance! :sparkles:"
 
     post_message(info["channel"], text, thread_ts=info["ts"])
-    print(f"[ext_summary] Posted summary for {spark_name}")
+    logger.info("Posted ext summary for %s", spark_name)
     time.sleep(1)  # rate limit
 
 
@@ -138,4 +141,4 @@ def run_ext_summaries():
         try:
             post_ext_summary_to_thread(spark_name, info)
         except Exception as e:
-            print(f"[ext_summary] Error for {spark_name}: {e}")
+            logger.error("Error processing ext summary for %s: %s", spark_name, e)

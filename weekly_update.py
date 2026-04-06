@@ -3,8 +3,11 @@ Feature 4: Every Friday, post a Week N status update to #proj-redesign-spark
 showing all 8 Sparks, their CV mentor feedback status, and what's happening.
 """
 import json
+import logging
 import os
 from datetime import datetime
+
+logger = logging.getLogger(__name__)
 
 from config import ALL_SPARKS, EVALUATORS
 from slack_client import get_thread_replies, post_message
@@ -134,10 +137,10 @@ def build_weekly_update(week):
 
 def post_weekly_update(week):
     """Generate and post the weekly status update to the main channel."""
-    print(f"[weekly_update] Building Week {week} status update...")
+    logger.info("Building Week %d status update...", week)
     text = build_weekly_update(week)
     result = post_message(SUMMARY_CHANNEL, text)
     if result.get("ok"):
-        print(f"[weekly_update] Posted Week {week} status update.")
+        logger.info("Posted Week %d status update.", week)
     else:
-        print(f"[weekly_update] Error: {result.get('error')}")
+        logger.error("Failed to post Week %d status update: %s", week, result.get("error"))

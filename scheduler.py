@@ -5,9 +5,13 @@ Scheduler:
   - Thursday 4 PM ET (21:00 UTC)  → post targeted reminders where feedback is missing
   - Friday 4 PM ET (21:00 UTC)    → post weekly status update to #proj-redesign-spark
 """
+import logging
+
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
 from apscheduler.triggers.interval import IntervalTrigger
+
+logger = logging.getLogger(__name__)
 
 
 def start_scheduler(post_reminder_fn, post_ext_summaries_fn, post_weekly_update_fn,
@@ -47,9 +51,5 @@ def start_scheduler(post_reminder_fn, post_ext_summaries_fn, post_weekly_update_
     )
 
     scheduler.start()
-    print("Scheduler started:")
-    print("  Every 10 min      → calendar poll for post-call nudges")
-    print("  Wed 9 AM ET       → ext channel summaries to Spark threads")
-    print("  Thu 4 PM ET       → feedback reminders (missing only)")
-    print("  Fri 4 PM ET       → weekly status update to #proj-redesign-spark")
+    logger.info("Scheduler started: every 10 min=calendar poll, Wed 9 AM ET=ext summaries, Thu 4 PM ET=reminders, Fri 4 PM ET=weekly update")
     return scheduler
